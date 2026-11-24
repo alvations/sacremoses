@@ -10,6 +10,30 @@ from sacremoses.tokenize import MosesTokenizer, MosesDetokenizer
 
 
 class TestTokenzier(unittest.TestCase):
+    def test_penn_regex_rules_are_compiled(self):
+        for rule_set in (MosesTokenizer.MOSES_PENN_REGEXES_1,
+                         MosesTokenizer.MOSES_PENN_REGEXES_2):
+            for index, (pattern, _) in enumerate(rule_set):
+                with self.subTest(rule_index=index):
+                    self.assertTrue(callable(getattr(pattern, "sub", None)))
+
+    def test_penn_tokenize_empty_input(self):
+        for lang in ("en", "", "unknown", "zh", "ja", "ko", "cjk"):
+            with self.subTest(lang=lang):
+                tokenizer = MosesTokenizer(lang)
+                self.assertEqual(tokenizer.penn_tokenize(""), [])
+                self.assertEqual(tokenizer.penn_tokenize("", return_str=True), "")
+
+    def test_penn_tokenize_intratoken_slashes(self):
+        tokenizer = MosesTokenizer()
+        self.assertEqual(tokenizer.penn_tokenize("and/or"), ["and", "@/@", "or"])
+        self.assertEqual(
+            tokenizer.penn_tokenize("and/or", return_str=True), "and @/@ or")
+        for lang in ("en", "zh", "ja", "ko", "cjk"):
+            with self.subTest(lang=lang):
+                pattern, replacement = MosesTokenizer(lang).INTRATOKEN_SLASHES
+                self.assertEqual(pattern.sub(replacement, "and/or"), "and @/@ or")
+
     def test_moses_tokenize(self):
         moses = MosesTokenizer()
 
